@@ -1,0 +1,1646 @@
+<title>Loom & Anvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f4f7; --bg-alt:#ffffff; --surface:#ffffff; --surface-2:#eceef2;
+    --border:#dde0e6; --text:#1b1e26; --text-dim:#565d6e; --text-faint:#848c9e;
+    --accent:#9c6f1f; --accent-strong:#7d5814; --accent-soft:#f2e6cd; --accent-ink:#1b1e26;
+    --good:#2f7d4f; --good-soft:#e3f2e8; --bad:#b8402f; --bad-soft:#fbe6e2;
+    --code-bg:#1b1e26; --code-text:#e8eaf0; --shadow:rgba(20,20,30,.08);
+    --focus:#3568c9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12141a; --bg-alt:#181b23; --surface:#1c202a; --surface-2:#232838;
+      --border:#333a4c; --text:#eef0f4; --text-dim:#a7aec0; --text-faint:#6c7385;
+      --accent:#d9a441; --accent-strong:#eab55a; --accent-soft:#3a2f14; --accent-ink:#171000;
+      --good:#6fae7d; --good-soft:#173322; --bad:#d97a6b; --bad-soft:#3a1c17;
+      --code-bg:#0e1016; --code-text:#e8eaf0; --shadow:rgba(0,0,0,.5);
+      --focus:#7aa2f7;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141a; --bg-alt:#181b23; --surface:#1c202a; --surface-2:#232838;
+    --border:#333a4c; --text:#eef0f4; --text-dim:#a7aec0; --text-faint:#6c7385;
+    --accent:#d9a441; --accent-strong:#eab55a; --accent-soft:#3a2f14; --accent-ink:#171000;
+    --good:#6fae7d; --good-soft:#173322; --bad:#d97a6b; --bad-soft:#3a1c17;
+    --code-bg:#0e1016; --code-text:#e8eaf0; --shadow:rgba(0,0,0,.5);
+    --focus:#7aa2f7;
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:light dark;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Karla',system-ui,-apple-system,sans-serif;
+    line-height:1.6; font-size:16px;
+    -webkit-text-size-adjust:100%;
+  }
+  h1,h2,h3,h4{
+    font-family:'JetBrains Mono',ui-monospace,'SF Mono',monospace;
+    font-weight:700; letter-spacing:-.01em; text-wrap:balance; color:var(--text);
+  }
+  a{color:var(--accent-strong);}
+  code, pre, .mono{font-family:'JetBrains Mono',ui-monospace,'SF Mono',monospace;}
+  p{max-width:70ch;}
+
+  .shell{display:flex; min-height:100vh;}
+
+  /* ---------- sidebar ---------- */
+  .nav{
+    width:260px; flex:0 0 260px; background:var(--bg-alt); border-right:1px solid var(--border);
+    padding:20px 16px; position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .nav-brand{display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+  .nav-brand .mark{font-size:22px;}
+  .nav-brand h1{font-size:17px; margin:0;}
+  .nav-sub{color:var(--text-faint); font-size:12.5px; margin:2px 0 18px;}
+  .progress-wrap{margin-bottom:18px;}
+  .progress-label{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+  .progress-track{height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden;}
+  .progress-fill{height:100%; background:var(--accent); width:0%; transition:width .3s ease;}
+  .nav ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; counter-reset:step;}
+  .nav a{
+    counter-increment:step; display:flex; align-items:center; gap:8px;
+    text-decoration:none; color:var(--text-dim); font-size:13.5px; padding:7px 8px; border-radius:6px;
+    border-left:2px solid transparent;
+  }
+  .nav a::before{
+    content:counter(step,decimal-leading-zero); font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--text-faint); flex:0 0 auto;
+  }
+  .nav a[data-done="1"]::after{content:"✓"; margin-left:auto; color:var(--good); font-weight:700;}
+  .nav a:hover{background:var(--surface-2); color:var(--text);}
+  .nav a.active{color:var(--text); background:var(--accent-soft); border-left-color:var(--accent);}
+  .nav-toggle{display:none;}
+
+  /* ---------- main ---------- */
+  main{flex:1; min-width:0; padding:0 0 80px;}
+  .hero{
+    padding:56px 48px 40px; border-bottom:1px solid var(--border); background:var(--bg-alt);
+  }
+  .badges{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+  .badge{
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-dim);
+    background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:99px;
+  }
+  .hero h2{font-size:clamp(28px,4vw,40px); margin:0 0 14px;}
+  .hero p.lede{color:var(--text-dim); font-size:16.5px; max-width:62ch;}
+
+  section.lesson{padding:44px 48px; border-bottom:1px solid var(--border); max-width:900px;}
+  section.lesson:target{background:var(--accent-soft);}
+  .lesson-kicker{
+    display:flex; align-items:center; gap:10px; margin-bottom:8px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent-strong); text-transform:uppercase; letter-spacing:.06em;
+  }
+  .lesson h3{font-size:26px; margin:0 0 16px;}
+  .lesson h4{font-size:16px; margin:26px 0 8px;}
+
+  pre{
+    background:var(--code-bg); color:var(--code-text); border:1px solid var(--border);
+    border-radius:10px; padding:16px 18px; overflow-x:auto; font-size:13.5px; line-height:1.55; margin:14px 0;
+  }
+  :not(pre) > code{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:.9em;
+  }
+
+  .callout{border-left:3px solid var(--accent); background:var(--surface); border-radius:0 8px 8px 0; padding:14px 18px; margin:18px 0;}
+  .callout.good{border-left-color:var(--good); }
+  .callout .callout-label{font-family:'JetBrains Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent-strong); display:block; margin-bottom:6px;}
+  .callout.good .callout-label{color:var(--good);}
+
+  .exercise{
+    border:1px solid var(--border); border-radius:10px; padding:20px 22px; margin:22px 0; background:var(--surface);
+    box-shadow:0 2px 10px var(--shadow);
+  }
+  .exercise-title{font-family:'JetBrains Mono',monospace; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin-bottom:8px;}
+
+  .concept{margin:26px 0 10px;}
+  .concept h4{margin-bottom:8px;}
+  .step{
+    border-left:3px solid var(--text-faint); padding:12px 16px; margin:12px 0 24px; background:var(--bg-alt);
+    border-radius:0 8px 8px 0;
+  }
+  .step .step-label{
+    font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-faint); display:block; margin-bottom:6px;
+  }
+  .step p{margin:6px 0;}
+  .checkpoint{border-left-color:var(--focus);}
+  .checkpoint .step-label{color:var(--focus);}
+
+  details.solution{margin-top:14px; border:1px dashed var(--border); border-radius:8px; padding:2px 14px;}
+  details.solution summary{cursor:pointer; padding:10px 0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-dim); list-style:none;}
+  details.solution summary::-webkit-details-marker{display:none;}
+  details.solution summary::before{content:"▸ "; color:var(--accent-strong);}
+  details.solution[open] summary::before{content:"▾ ";}
+  details.solution[open]{padding-bottom:14px;}
+
+  .mark-done{
+    margin-top:16px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text-dim);
+    border:1px solid var(--border); padding:7px 12px; border-radius:7px; background:var(--surface);
+  }
+  .mark-done input{accent-color:var(--good); width:15px; height:15px;}
+  .mark-done[data-checked="1"]{color:var(--good); border-color:var(--good);}
+
+  /* hint widget */
+  .hint{border:1px solid var(--border); border-radius:10px; margin-top:18px; background:var(--bg-alt);}
+  .hint > summary{
+    cursor:pointer; list-style:none; padding:12px 16px; display:flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--accent-strong);
+  }
+  .hint > summary::-webkit-details-marker{display:none;}
+  .hint-body{padding:0 16px 16px;}
+  .hint textarea{
+    width:100%; min-height:64px; resize:vertical; background:var(--surface); color:var(--text);
+    border:1px solid var(--border); border-radius:7px; padding:10px 12px; font-family:'Karla',sans-serif; font-size:13.5px;
+  }
+  .hint-row{display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;}
+  .btn{
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; border:1px solid var(--accent); background:var(--accent);
+    color:var(--accent-ink); padding:8px 14px; border-radius:7px; cursor:pointer; font-weight:700;
+  }
+  .btn:disabled{opacity:.5; cursor:default;}
+  .btn.ghost{background:transparent; color:var(--text-dim); border-color:var(--border); font-weight:500;}
+  .hint-level{font-size:11.5px; color:var(--text-faint); font-family:'JetBrains Mono',monospace;}
+  .hint-answer{
+    margin-top:12px; padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    font-size:14px; white-space:pre-wrap;
+  }
+  .hint-note{font-size:12px; color:var(--text-faint); margin-top:6px;}
+  .hint[data-unavailable="1"]{display:none;}
+
+  .next-row{display:flex; gap:14px; flex-wrap:wrap; margin-top:16px;}
+  .pill{
+    font-family:'JetBrains Mono',monospace; font-size:12px; padding:5px 11px; border-radius:99px;
+    border:1px solid var(--border); color:var(--text-faint); background:var(--surface);
+  }
+
+  .roadmap-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-top:16px;}
+  .roadmap-card{border:1px solid var(--border); border-radius:10px; padding:14px 16px; background:var(--surface);}
+  .roadmap-card h5{margin:0 0 6px; font-family:'JetBrains Mono',monospace; font-size:13.5px; color:var(--text);}
+  .roadmap-card p{margin:0; font-size:13px; color:var(--text-dim);}
+
+  footer.page-end{padding:40px 48px; color:var(--text-faint); font-size:13px;}
+
+  @media (max-width:900px){
+    .shell{flex-direction:column;}
+    .nav{
+      width:100%; flex:none; position:sticky; top:0; height:auto; max-height:none;
+      border-right:none; border-bottom:1px solid var(--border); z-index:5;
+    }
+    .nav ol{display:none;}
+    .nav.open ol{display:flex;}
+    .nav-toggle{
+      display:flex; justify-content:space-between; align-items:center; width:100%;
+      background:none; border:1px solid var(--border); border-radius:7px; padding:8px 12px;
+      color:var(--text-dim); font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:10px; cursor:pointer;
+    }
+    .hero{padding:36px 20px 28px;}
+    section.lesson{padding:32px 20px;}
+    footer.page-end{padding:28px 20px;}
+  }
+</style>
+
+<div class="shell">
+  <aside class="nav" id="sideNav">
+    <div class="nav-brand"><span class="mark">🧵</span><h1>Loom &amp; Anvil</h1></div>
+    <p class="nav-sub">Fabric mod dev, from Java basics to your own mod</p>
+
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Progress</span><span id="progressPct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <button class="nav-toggle" id="navToggle">Modules <span id="navToggleIcon">▾</span></button>
+
+    <ol id="navList">
+      <li><a href="#orientation" data-target="orientation">Orientation</a></li>
+      <li><a href="#setup" data-target="setup">The workshop (Codespaces)</a></li>
+      <li><a href="#java-bridge" data-target="java-bridge">Java, past CodingBat</a></li>
+      <li><a href="#anatomy" data-target="anatomy">Anatomy of a mod</a></li>
+      <li><a href="#registries" data-target="registries">Registries</a></li>
+      <li><a href="#events" data-target="events">Events, before mixins</a></li>
+      <li><a href="#mixins" data-target="mixins">Mixins, done right</a></li>
+      <li><a href="#config" data-target="config">Config files, done right</a></li>
+      <li><a href="#testing" data-target="testing">Testing without a screen</a></li>
+      <li><a href="#networking" data-target="networking">Networking</a></li>
+      <li><a href="#datagen" data-target="datagen">Data generation</a></li>
+      <li><a href="#screens" data-target="screens">Screens &amp; HUD</a></li>
+      <li><a href="#capstone" data-target="capstone">Capstone</a></li>
+      <li><a href="#whats-next" data-target="whats-next">What's next</a></li>
+    </ol>
+  </aside>
+
+  <main>
+    <header class="hero">
+      <div class="badges">
+        <span class="badge">Java 21</span>
+        <span class="badge">Minecraft 1.21.11</span>
+        <span class="badge">Fabric Loader · Yarn mappings</span>
+        <span class="badge">Runs in GitHub Codespaces</span>
+        <span class="badge">No local installs</span>
+      </div>
+      <h2>Loom &amp; Anvil</h2>
+      <p class="lede">A ground-up path into Minecraft Fabric mod development — no assumption you've built one before, even if you have. Every idea gets a short explanation, then something small to build with just that idea, then a bigger problem that forces you to combine it with everything before it. Written to run entirely from an iPad in Safari. Solutions stay hidden until you've actually tried; an on-demand hint is one tap away when you're truly stuck, and it will never just hand you the answer.</p>
+    </header>
+
+    <!-- ORIENTATION -->
+    <section class="lesson" id="orientation">
+      <div class="lesson-kicker">Start here</div>
+      <h3>Orientation</h3>
+      <p>You already know more Java than you're giving yourself credit for — loops, conditionals, methods, basic classes. What CodingBat doesn't teach is how a <em>real</em>, event-driven, multi-threaded Java application is put together, which is most of what Fabric modding actually is. This course closes that gap on purpose, in order: enough Java-the-language to stop guessing, then Fabric's own architecture, then the two things that trip up almost every self-taught modder — mixins and config files — done the way an experienced modder does them, not the way a copy-pasted tutorial does them.</p>
+
+      <div class="callout">
+        <span class="callout-label">One assumption this course makes on purpose</span>
+        Not that you've built a Minecraft mod before — even if you have. If AI wrote most of the code for something you've shipped, the part that matters most, reading an unfamiliar API and reasoning out what it does, probably didn't get built. Nothing here assumes you already know what a registry, a mixin, or a config loader is. If a term shows up before it's explained, that's a bug in this page, not a gap in you — say so and it gets fixed.
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">The iPad problem, solved honestly</span>
+        Compiling and running a Minecraft mod needs a JDK, Gradle, and a Java game client. No website can do that inside Safari with zero downloads — that's not a limitation of this site, it's just what a mod is. The fix is <strong>GitHub Codespaces</strong>: a full Linux dev machine that runs in your browser tab, free within GitHub's monthly hours. You'll write and build real code from your iPad; when something needs an actual graphical Minecraft client to eyeball, we lean on Fabric's own <strong>GameTest</strong> framework instead, which checks your mod's behavior automatically with no display at all. You'll rarely be blocked.
+      </div>
+
+      <h4>How each module is shaped</h4>
+      <p>Every new idea follows the same rhythm: a short explanation, then a <strong>Try it</strong> — small enough to finish in a couple of minutes, using only that one idea. Every few ideas, a bigger <strong>Combine it</strong> forces you to use several of them together, including ones from earlier modules — that's the point where you find out whether you actually understood the Try-its or just skimmed them. Do the Try-its for real, in an actual file, even the ones that feel too small to bother with. Skipping straight to Combine It is the easiest way to convince yourself you understand something you don't.</p>
+
+      <h4>How the hint button works</h4>
+      <p>Every exercise has a real, correct solution hidden behind a <code>▸ Reveal solution</code> toggle — written by hand, not by an AI, so it's something you can trust. Separately, most exercises have a <strong>Stuck? Ask for a hint</strong> box. It will never hand you the finished answer — it asks you a guiding question the first time, gives you a bigger nudge the second time, and walks through the approach in plain English (no working code for the actual exercise) the third. If you want the answer, use the solution toggle and be honest with yourself about whether you understood it or just copied it.</p>
+      <p class="hint-note" id="globalHintNotice"></p>
+
+      <label class="mark-done" data-lesson="orientation"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- SETUP -->
+    <section class="lesson" id="setup">
+      <div class="lesson-kicker">Module 1</div>
+      <h3>The workshop: setting up in GitHub Codespaces</h3>
+      <p>Everything below happens in Safari, from the repo page. No App Store, no Xcode, no local JDK.</p>
+
+      <div class="concept">
+        <h4>Vocabulary check, before you touch anything</h4>
+        <p>None of this comes up in CodingBat, so quickly: <strong>Gradle</strong> is a build tool — a program that reads a config file and turns your source code, plus other people's code your project needs, into a runnable thing. A <strong>dependency</strong> is someone else's code your project needs to compile against — here, that's Minecraft's own code and Fabric's libraries. Gradle downloads exactly the versions you specify and wires them in; you never manually hunt down a <code>.jar</code> file yourself. The <strong>JDK</strong> (Java Development Kit) is what actually compiles and runs Java — Codespaces installs one inside the container for you, which is the whole reason this works with nothing installed on the iPad itself.</p>
+      </div>
+
+      <h4>1. Get your own copy of a working mod skeleton</h4>
+      <p>Go to <code>github.com/FabricMC/fabric-example-mod</code> — this is Fabric's own official starter, kept up to date by the people who build the toolchain. Tap <strong>Use this template → Create a new repository</strong> and give it a name (call it <code>loom-and-anvil</code> if you want to follow along literally).</p>
+
+      <h4>2. Open it as a Codespace</h4>
+      <p>On your new repo's page, tap the green <strong>Code</strong> button, switch to the <strong>Codespaces</strong> tab, and tap <strong>Create codespace on main</strong>. GitHub builds you a container with Java and the tools preinstalled and opens a full VS Code in your browser tab — this <em>is</em> your IDE now, keyboard shortcuts and all.</p>
+
+      <div class="callout good">
+        <span class="callout-label">Free tier, and a student bump</span>
+        Personal GitHub accounts get 60 hours a month on a 2-core Codespace (120 core-hours) plus 15GB storage, free — plenty for coursework. If you're using a school email, check whether it qualifies for the <a href="https://education.github.com/pack" target="_blank" rel="noopener">GitHub Student Developer Pack</a>, which raises those limits.
+      </div>
+
+      <h4>3. Point it at Minecraft 1.21.11</h4>
+      <p>Open <code>gradle.properties</code> in the file explorer. You'll set four values to match this course:</p>
+      <pre>minecraft_version=1.21.11
+yarn_mappings=&lt;current 1.21.11 build&gt;
+loader_version=&lt;current loader&gt;
+fabric_version=&lt;current Fabric API for 1.21.11&gt;</pre>
+      <p>Fabric ships new build numbers often, so this page won't hardcode ones that go stale — open <a href="https://fabricmc.net/develop/" target="_blank" rel="noopener">fabricmc.net/develop</a> or the <a href="https://modrinth.com/mod/fabric-api/versions" target="_blank" rel="noopener">Fabric API versions page</a>, filter to 1.21.11, and copy the current numbers in. Learning to find the right dependency version yourself is a real modding skill — tutorials that hardcode version numbers are usually the ones you find broken six months later.</p>
+
+      <h4>4. Prove it builds headlessly</h4>
+      <p>Open a terminal (hamburger menu → <strong>Terminal → New Terminal</strong>, or the shortcut your keyboard's <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> key gives you) and run:</p>
+      <pre>./gradlew build</pre>
+      <p>First run downloads and deobfuscates Minecraft itself, so give it several minutes. A final <code>BUILD SUCCESSFUL</code> with no test failures is your entire toolchain working, end to end, with no display attached — remember that line, it's the signal you'll rely on for the rest of the course.</p>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Rename the mod: change the <code>mod_id</code> and mod name in <code>gradle.properties</code> and <code>src/main/resources/fabric.mod.json</code> to something of your own, then run <code>./gradlew build</code> again and confirm it still succeeds.
+        <details class="solution">
+          <summary>Reveal checklist</summary>
+          <p>You need to touch three places consistently: <code>gradle.properties</code> (<code>mod_id</code>, usually also the <code>archives_base_name</code>), <code>fabric.mod.json</code> (the <code>"id"</code> and <code>"name"</code> fields), and your Java package name if you rename that too (update the <code>entrypoints</code> paths in <code>fabric.mod.json</code> to match). Mismatch any of these and the build usually still succeeds but Minecraft refuses to load the mod later with a "duplicate/invalid mod id" style error — so this exercise is really practice at reading exactly what changed.</p>
+        </details>
+        <div class="hint" data-lesson="Codespaces setup" data-exercise="Renaming a Fabric mod's id/name consistently across gradle.properties and fabric.mod.json and confirming ./gradlew build still succeeds.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="setup"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- JAVA BRIDGE -->
+    <section class="lesson" id="java-bridge">
+      <div class="lesson-kicker">Module 2</div>
+      <h3>Java, past CodingBat</h3>
+      <p>CodingBat teaches you to reason about values — strings, arrays, conditionals. Fabric's codebase constantly leans on a handful of Java features CodingBat never exercises, because they're what large, long-lived codebases actually need. None of these are exotic — they're ordinary Java, just outside what a warm-up site tests. Take every Try-it seriously; they build directly on each other and feed the Combine It at the end.</p>
+
+      <div class="concept">
+        <h4>Interfaces as contracts</h4>
+        <p>An interface says "anything that implements me can do these things," without saying how. Fabric's own entrypoints are interfaces — <code>ModInitializer</code> just promises "I have an <code>onInitialize()</code> method," and Fabric Loader calls it without caring what your class is named.</p>
+        <pre>public interface Greeter {
+    String greet(String name);
+}
+
+public class FriendlyGreeter implements Greeter {
+    @Override
+    public String greet(String name) {
+        return "Hey there, " + name + "!";
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write an interface <code>Soundable</code> with one method, <code>void makeSound()</code> (no return value). Then write a class <code>Cow</code> that implements it, printing <code>"Moo"</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public interface Soundable {
+    void makeSound();
+}
+
+public class Cow implements Soundable {
+    @Override
+    public void makeSound() {
+        System.out.println("Moo");
+    }
+}</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Lambdas: an interface implementation without the class</h4>
+        <p>When an interface has exactly <em>one</em> method (a "functional interface"), Java lets you skip writing a whole class and just write that one method as a compact expression instead — a <strong>lambda</strong>. This matters more than it looks: Fabric API's events are all functional interfaces, and you'll write a lambda for almost every one of them in module 5.</p>
+        <pre>Soundable cow = () -> System.out.println("Moo");
+cow.makeSound(); // Moo</pre>
+        <p>The <code>()</code> is the (empty) parameter list matching <code>makeSound()</code>; everything after <code>-&gt;</code> is the method body. A method that takes parameters just lists them before the arrow: <code>(player, world, hand) -&gt; { ... }</code>.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Rewrite your <code>Cow</code> class from above as a one-line lambda assigned to a variable of type <code>Soundable</code>, instead of a separate class.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>Soundable cow = () -> System.out.println("Moo");</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Records, for plain data</h4>
+        <p>A lot of modern Fabric code — especially network packets — is small, immutable bundles of data. A <code>record</code> gives you a constructor, getters, <code>equals</code>, <code>hashCode</code>, and <code>toString</code> in one line, instead of the 20-line class you'd hand-write for the same thing.</p>
+        <pre>public record Coordinates(int x, int y, int z) {}
+
+Coordinates spot = new Coordinates(100, 64, -32);
+spot.x();   // 100 — records auto-generate accessors named after the field</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write a record <code>Coordinates(int x, int y, int z)</code>, create one for the point <code>(100, 64, -32)</code>, and print just its <code>y</code> value.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public record Coordinates(int x, int y, int z) {}
+
+Coordinates spot = new Coordinates(100, 64, -32);
+System.out.println(spot.y()); // 64</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Generics, briefly</h4>
+        <p><code>List&lt;Item&gt;</code> means "a list that only ever holds <code>Item</code>s" — the compiler enforces it so you can't accidentally shove a <code>String</code> in and find out at runtime. You'll see this constantly in registries: <code>Registry&lt;Item&gt;</code>, <code>Registry&lt;Block&gt;</code>.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Declare <code>List&lt;String&gt; tags = new ArrayList&lt;&gt;();</code> and add <code>"sword"</code> and <code>"legendary"</code> to it. Then, in one sentence, explain why <code>tags.add(5);</code> would refuse to compile.</p>
+        <details class="solution"><summary>Reveal explanation</summary>
+          <p><code>List&lt;String&gt;</code> is a generic type locked to <code>String</code> — the compiler knows at compile time that every element must be a <code>String</code>, so passing an <code>int</code> (auto-boxed to <code>Integer</code>) is a type mismatch it catches immediately, instead of letting the mistake surface later as a runtime <code>ClassCastException</code> somewhere far from where the bad value was added.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Static fields for identity and shared state</h4>
+        <p>A <code>static final</code> field belongs to the class, not an instance — this is how a mod exposes its ID, its logger, and its registered objects so every other class can reach them without passing references around everywhere.</p>
+        <pre>public class LoomAnvilMod {
+    public static final String MOD_ID = "loom_anvil";
+}
+// anywhere else: LoomAnvilMod.MOD_ID</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Add <code>public static final int MAX_LEVEL = 10;</code> to a class named <code>Charm</code>. From a completely different class, write the exact line of code that reads it.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>int max = Charm.MAX_LEVEL;</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Optional, instead of null-checking everything</h4>
+        <p><code>Optional&lt;T&gt;</code> forces you to explicitly handle "this might not have a value" instead of forgetting a null-check and crashing a server at 2am. Minecraft's own APIs use it a lot for lookups that might fail.</p>
+        <pre>public Optional&lt;String&gt; findByName(String name) {
+    if (name.equals("anvil")) return Optional.of("anvil");
+    return Optional.empty();
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Call your <code>findByName</code> with <code>"iron"</code> (which doesn't match) and, without an <code>if</code> statement, use <code>.orElse("unknown")</code> to get a fallback value out of it. Print the result.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>String result = findByName("iron").orElse("unknown");
+System.out.println(result); // unknown</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Enums, for a fixed set of named options</h4>
+        <p>An <code>enum</code> is a fixed, named set of constants. Minecraft uses them everywhere — directions, rarities, dye colors — because unlike a plain <code>String</code>, the compiler catches a typo (<code>"comon"</code> instead of <code>"common"</code>) at compile time instead of silently misbehaving at runtime.</p>
+        <pre>public enum Rarity { COMMON, RARE, LEGENDARY }
+
+Rarity r = Rarity.LEGENDARY;</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write an enum <code>AbilityTier</code> with two constants, <code>MINOR</code> and <code>MAJOR</code>. Write one line of code that stores <code>MINOR</code> in a variable and prints it (an enum's <code>toString()</code> prints its constant name for free).</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public enum AbilityTier { MINOR, MAJOR }
+
+AbilityTier tier = AbilityTier.MINOR;
+System.out.println(tier); // MINOR</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>try/catch, for things that can fail</h4>
+        <p>Some operations — reading a file, parsing text as a number — can fail in ways the compiler can't prevent. <code>try/catch</code> lets you say "attempt this, and if it throws an exception, handle it here instead of crashing." You'll use this for real in module 7, loading a config file that might not exist yet.</p>
+        <pre>try {
+    int n = Integer.parseInt(userInput);
+} catch (NumberFormatException e) {
+    System.out.println("That wasn't a number.");
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write a try/catch around <code>Integer.parseInt("banana")</code> that prints <code>"Couldn't parse that."</code> instead of letting the exception crash the program.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>try {
+    int n = Integer.parseInt("banana");
+} catch (NumberFormatException e) {
+    System.out.println("Couldn't parse that.");
+}</pre>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Write an interface <code>Ability</code> with one method <code>void activate(String playerName)</code>. Write a record <code>AbilityResult(boolean success, String message)</code>. Write an enum <code>AbilityTier { MINOR, MAJOR }</code>. Write a class <code>CheapenAbility</code> implementing <code>Ability</code> with a <code>public static final AbilityTier TIER = AbilityTier.MINOR;</code> field, whose <code>activate</code> prints a message including both the player's name and the tier. Finally, put <code>CheapenAbility</code> and one more <code>Ability</code> of your own (a lambda is fine) into a <code>List&lt;Ability&gt;</code> and call <code>activate</code> on each in a loop.
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>public interface Ability {
+    void activate(String playerName);
+}
+
+public record AbilityResult(boolean success, String message) {}
+
+public enum AbilityTier { MINOR, MAJOR }
+
+public class CheapenAbility implements Ability {
+    public static final AbilityTier TIER = AbilityTier.MINOR;
+
+    @Override
+    public void activate(String playerName) {
+        System.out.println(playerName + " activated Cheapen (" + TIER + ")!");
+    }
+}
+
+// elsewhere:
+List&lt;Ability&gt; abilities = new ArrayList&lt;&gt;();
+abilities.add(new CheapenAbility());
+abilities.add(name -> System.out.println(name + " activated a Spark!"));
+
+for (Ability ability : abilities) {
+    ability.activate("Finn");
+}</pre>
+        </details>
+        <div class="hint" data-lesson="Java bridge: interfaces, lambdas, records, generics, Optional, enums, try/catch" data-exercise="Writing an Ability interface, an AbilityResult record, an AbilityTier enum, a CheapenAbility class implementing Ability with a static tier field, and storing multiple Ability implementations (including a lambda) in a List to call activate() on each.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="java-bridge"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- ANATOMY -->
+    <section class="lesson" id="anatomy">
+      <div class="lesson-kicker">Module 3</div>
+      <h3>Anatomy of a Fabric mod</h3>
+      <p>A Minecraft world runs as two logical halves even in singleplayer: an internal <strong>server</strong> simulating the world, and a <strong>client</strong> rendering it and reading your input. A dedicated server has no client half at all. Fabric makes you declare, per class, which side you're allowed to touch — get this wrong and your mod crashes dedicated servers with a <code>ClassNotFoundException</code> for a rendering class that simply doesn't exist there.</p>
+
+      <div class="concept">
+        <h4>fabric.mod.json is the manifest, and "id" is a namespace</h4>
+        <p>This file tells Fabric Loader what your mod is and which classes to call at startup — its <strong>entrypoints</strong>. The <code>"id"</code> field matters more than it looks: it becomes your mod's <strong>namespace</strong>, the prefix every item, block, and identifier you register will carry (<code>loom_anvil:cheapen_charm</code>), so it has to be unique among every mod that might ever load alongside yours, and it has to match everywhere it's used.</p>
+        <pre>{
+  "id": "loom_anvil",
+  "entrypoints": {
+    "main": ["com.example.loomanvil.LoomAnvilMod"],
+    "client": ["com.example.loomanvil.LoomAnvilClient"]
+  }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — spot the bug</span>
+        <p>Here's a broken <code>fabric.mod.json</code>: <code>"id": "loom_anvil"</code>, but the entrypoint reads <code>"main": ["com.example.oldname.LoomAnvilMod"]</code> — and the actual Java class lives in package <code>com.example.loomanvil</code>. What happens when Fabric Loader tries to start this mod?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>Fabric Loader looks for a class at exactly <code>com.example.oldname.LoomAnvilMod</code> — that class doesn't exist at that path, so loading fails immediately with a <code>ClassNotFoundException</code>, before any of your code ever runs. The mod id and the Java package are two independent strings; nothing keeps them in sync for you but you remembering to update both when you rename one.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Three initializer interfaces, three audiences</h4>
+        <ul style="max-width:70ch;">
+          <li><code>ModInitializer</code> — <code>onInitialize()</code> runs on <em>both</em> client and dedicated server. Registries go here.</li>
+          <li><code>ClientModInitializer</code> — <code>onInitializeClient()</code> runs only where there's a screen. Rendering, keybinds, HUD.</li>
+          <li><code>DedicatedServerModInitializer</code> — runs only on a dedicated server. Rare, but exists for server-only setup.</li>
+        </ul>
+        <pre>public class LoomAnvilMod implements ModInitializer {
+    public static final String MOD_ID = "loom_anvil";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    @Override
+    public void onInitialize() {
+        LOGGER.info("Loom & Anvil is warming up the forge...");
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write a <code>ModInitializer</code> class named <code>CheapenMod</code> whose <code>onInitialize()</code> logs <code>"Cheapen mod loaded."</code> using a <code>Logger</code> the way <code>LoomAnvilMod</code> does above.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public class CheapenMod implements ModInitializer {
+    public static final Logger LOGGER = LoggerFactory.getLogger("cheapen");
+
+    @Override
+    public void onInitialize() {
+        LOGGER.info("Cheapen mod loaded.");
+    }
+}</pre>
+        </details>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Good practice</span>
+        Never reference a client-only class (anything under rendering, screens, or particle effects) from a class that also runs on the dedicated server — even a single unused import can crash a server the moment that class loads. When in doubt, keep client-only logic physically inside your <code>client</code> entrypoint's package.
+      </div>
+
+      <div class="step checkpoint">
+        <span class="step-label">Checkpoint</span>
+        <p>In your own words: why would a dedicated server never call <code>onInitializeClient()</code>, even if the class exists right there in your mod's jar file?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p><code>onInitializeClient()</code> is only invoked by the client-side bootstrap path — a dedicated server binary simply never instantiates a <code>ClientModInitializer</code> at all, so the class is never touched there. It's not sandboxing or permission-checking; Fabric Loader just never calls that entrypoint on that distribution. The class being present in the jar doesn't matter if nothing ever calls into it.</p>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Add a <code>ClientModInitializer</code> class that logs a different startup message, and wire it into <code>fabric.mod.json</code>'s <code>"client"</code> entrypoint list alongside your <code>CheapenMod</code> in <code>"main"</code>. Run <code>./gradlew build</code> — it should still succeed, since <code>build</code> only exercises server-side game tests.
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>public class CheapenClient implements ClientModInitializer {
+    @Override
+    public void onInitializeClient() {
+        CheapenMod.LOGGER.info("Cheapen client-side rendering ready.");
+    }
+}</pre>
+<pre>"entrypoints": {
+  "main": ["com.example.loomanvil.CheapenMod"],
+  "client": ["com.example.loomanvil.CheapenClient"]
+}</pre>
+        </details>
+        <div class="hint" data-lesson="Anatomy of a Fabric mod" data-exercise="Adding a ClientModInitializer class and wiring both it and a ModInitializer into fabric.mod.json's entrypoints, then confirming ./gradlew build still succeeds.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="anatomy"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- REGISTRIES -->
+    <section class="lesson" id="registries">
+      <div class="lesson-kicker">Module 4</div>
+      <h3>Registries: how Minecraft knows your stuff exists</h3>
+      <p>Every item, block, and sound in Minecraft lives in a <strong>registry</strong> — effectively a big, namespaced map from an ID to an object. Registering something wrong is the single most common reason a beginner's item "exists in code" but never shows up in the game.</p>
+
+      <div class="concept">
+        <h4>Identifiers: a namespace and a path</h4>
+        <p>Every registered object gets an <code>Identifier</code>: your mod's namespace, a colon, and a path — <code>loom_anvil:cheapen_charm</code>. Both halves are restricted to lowercase letters, digits, underscores, dots, and hyphens; no spaces, no capitals. This isn't arbitrary strictness — Minecraft uses these strings directly as save-file keys and resource-file paths, and capital letters or spaces would break on some filesystems.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — spot the bug</span>
+        <p>Which of these would <code>Identifier.of(namespace, path)</code> reject or mishandle, and why: (a) <code>Identifier.of("loom_anvil", "cheapen_charm")</code>, (b) <code>Identifier.of("LoomAnvil", "cheapen_charm")</code>, (c) <code>Identifier.of("loom_anvil", "cheapen charm")</code>?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>(a) is fine. (b) has an uppercase namespace — invalid. (c) has a space in the path — also invalid. Both (b) and (c) violate the lowercase-and-limited-characters rule every registry identifier must follow.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Registering one item</h4>
+        <p>You register once, early, from your <code>ModInitializer</code>, storing the result in a field you can reference later. Exact constructor shapes shift a little release to release — cross-check the current shape against <a href="https://github.com/FabricMC/fabric-example-mod" target="_blank" rel="noopener">fabric-example-mod</a> for 1.21.11 rather than trusting any single snippet forever — but the idea is stable:</p>
+        <pre>public static final Item EXAMPLE_GEAR = Registry.register(
+    Registries.ITEM,
+    Identifier.of(MOD_ID, "example_gear"),
+    new Item(new Item.Settings())
+);</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write the registration line for a single item called <code>example_gear</code> in your mod's namespace, exactly as above but as if you were typing it from scratch.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public static final Item EXAMPLE_GEAR = Registry.register(
+    Registries.ITEM,
+    Identifier.of("loom_anvil", "example_gear"),
+    new Item(new Item.Settings())
+);</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Showing up in the creative inventory</h4>
+        <p>Registering an item makes it exist; it doesn't put it anywhere a player can find it in survival or creative mode. That's a separate step — adding it to an item group (a creative-tab):</p>
+        <pre>ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS)
+    .register(entries -> entries.add(EXAMPLE_GEAR));</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Add your <code>EXAMPLE_GEAR</code> item to the <code>ItemGroups.INGREDIENTS</code> tab, inside <code>onInitialize()</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>@Override
+public void onInitialize() {
+    ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS)
+        .register(entries -> entries.add(EXAMPLE_GEAR));
+}</pre>
+        </details>
+      </div>
+
+      <div class="callout good">
+        <span class="callout-label">Good practice</span>
+        Keep every registration for one category (all items, all blocks) in its own class — <code>ModItems</code>, <code>ModBlocks</code> — with a single static <code>register()</code> method you call once from <code>onInitialize()</code>. It's the difference between finding every item your mod adds in one file, and hunting through a dozen unrelated classes six months from now.
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Move your registration into a <code>ModItems</code> class that registers two items (your <code>example_gear</code> plus one more of your choice), adds both to <code>ItemGroups.INGREDIENTS</code>, and exposes a single <code>ModItems.register()</code> method your <code>ModInitializer</code> calls exactly once. Explain in one sentence why calling <code>register()</code> twice would be a bug.
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>public class ModItems {
+    public static final Item EXAMPLE_GEAR =
+        Registry.register(Registries.ITEM, Identifier.of(LoomAnvilMod.MOD_ID, "example_gear"),
+            new Item(new Item.Settings()));
+    public static final Item ANVIL_SHARD =
+        Registry.register(Registries.ITEM, Identifier.of(LoomAnvilMod.MOD_ID, "anvil_shard"),
+            new Item(new Item.Settings()));
+
+    public static void register() {
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS)
+            .register(entries -> {
+                entries.add(EXAMPLE_GEAR);
+                entries.add(ANVIL_SHARD);
+            });
+        LoomAnvilMod.LOGGER.info("Registered items for " + LoomAnvilMod.MOD_ID);
+    }
+}
+// onInitialize(): ModItems.register();</pre>
+          <p>Calling it twice would attempt to register the same <code>Identifier</code> twice — registries reject duplicate IDs, so the second call throws at startup instead of silently doing nothing.</p>
+        </details>
+        <div class="hint" data-lesson="Registries" data-exercise="Building a ModItems class with two registered items, both added to an item group, and a single register() method, plus explaining why calling register() twice is a bug (duplicate registry ID).">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="registries"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- EVENTS -->
+    <section class="lesson" id="events">
+      <div class="lesson-kicker">Module 5</div>
+      <h3>Events: the right way to hook into the game, before mixins</h3>
+      <p>Fabric API ships hundreds of <strong>callback events</strong> — hooks the game engine fires for you, like <code>ServerTickEvents.END_SERVER_TICK</code> or <code>UseItemCallback</code>. This is the whole reason mixins should be your <em>last</em> resort, not your first: if a Fabric API event already exists for the moment you need, using it is more readable, far more resistant to breaking on a Minecraft update, and easier for another modder (or you, in six months) to understand at a glance.</p>
+
+      <div class="concept">
+        <h4>An event is just a functional interface you hand a lambda to</h4>
+        <p>Nothing new is happening here beyond module 2 — <code>UseItemCallback.EVENT.register(...)</code> takes an object matching a one-method interface, and a lambda is the natural way to provide one.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p><code>UseItemCallback</code> has one method: <code>interact(PlayerEntity player, World world, Hand hand)</code>. Without looking anything up, write just the lambda <em>signature</em> (the part before <code>-&gt;</code>) you'd pass to <code>.register(...)</code> for it.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>(player, world, hand) -> { ... }</pre>
+          <p>Lambda parameters don't repeat their types — Java infers them from the interface method's signature.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>The full example</h4>
+        <pre>public class LoomAnvilMod implements ModInitializer {
+    @Override
+    public void onInitialize() {
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            ItemStack stack = player.getStackInHand(hand);
+            if (stack.isOf(ModItems.EXAMPLE_GEAR)) {
+                if (!world.isClient) {
+                    player.sendMessage(Text.literal("The gear hums."), true);
+                }
+                return TypedActionResult.success(stack);
+            }
+            return TypedActionResult.pass(stack);
+        });
+    }
+}</pre>
+        <p><code>TypedActionResult.success(stack)</code> tells Minecraft "I handled this, stop looking for other things to do with this item use"; <code>.pass(stack)</code> means "not for me, carry on as normal." Returning the wrong one is a common way to accidentally block unrelated interactions.</p>
+      </div>
+
+      <div class="concept">
+        <h4>world.isClient, and the double-run trap</h4>
+        <p>A callback like this fires on <em>both</em> logical sides — the client predicting what's about to happen, and the server actually deciding it. Code that isn't side-checked runs on both, twice, with each side thinking it's the only one running it.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — predict the bug</span>
+        <p>Here's the same callback with the <code>if (!world.isClient)</code> check removed, so <code>player.sendMessage(...)</code> runs unconditionally. What will a player actually see on screen when they use the item, and why?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>The message appears twice — once written by the client's own copy of this callback (running as part of its prediction), and once more when the server's authoritative copy runs and syncs a message back down. Side-checking isn't optional ceremony; it's the only thing preventing genuinely duplicated behavior.</p>
+        </details>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Good practice</span>
+        Always check <code>!world.isClient</code> before doing anything server-authoritative (spawning items, changing stats, sending broadcast messages) inside an event that fires on both sides.
+      </div>
+
+      <div class="concept">
+        <h4>ServerTickEvents: a heartbeat, not a timer</h4>
+        <p>Minecraft's server runs at a fixed 20 ticks per second. <code>ServerTickEvents.END_SERVER_TICK</code> fires once per tick, on the main server thread — it's the correct way to do "every N seconds" logic, because counting ticks stays on the thread that's allowed to touch the world; <code>Thread.sleep</code> or a background thread does not.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write code using <code>ServerTickEvents.END_SERVER_TICK</code> that increments a counter every tick and logs once, the first time the counter passes 100.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>private int tickCounter = 0;
+
+ServerTickEvents.END_SERVER_TICK.register(server -> {
+    tickCounter++;
+    if (tickCounter == 100) {
+        LOGGER.info("100 ticks have passed.");
+    }
+});</pre>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Using <code>UseItemCallback</code>, detect when a player right-clicks holding your <code>EXAMPLE_GEAR</code> item from module 4, and — only when <code>!world.isClient</code> — log a message. Separately, using <code>ServerTickEvents.END_SERVER_TICK</code>, log <code>"Still forging..."</code> every 200 ticks (10 seconds). Run <code>./gradlew build</code> and confirm there are no compile errors.
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>public class LoomAnvilMod implements ModInitializer {
+    private int tickCounter = 0;
+
+    @Override
+    public void onInitialize() {
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            ItemStack stack = player.getStackInHand(hand);
+            if (stack.isOf(ModItems.EXAMPLE_GEAR)) {
+                if (!world.isClient) {
+                    LOGGER.info(player.getName().getString() + " used the example gear.");
+                }
+                return TypedActionResult.success(stack);
+            }
+            return TypedActionResult.pass(stack);
+        });
+
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            tickCounter++;
+            if (tickCounter % 200 == 0) {
+                LOGGER.info("Still forging...");
+            }
+        });
+    }
+}</pre>
+          <p>The trap this exercise checks for: reaching for <code>Thread.sleep</code> or a background thread instead of just counting ticks — that would touch the world off the main server thread, a reliable way to corrupt state or crash the server.</p>
+        </details>
+        <div class="hint" data-lesson="Events (Fabric API callbacks)" data-exercise="Combining UseItemCallback (detecting a specific item, side-checked with !world.isClient) with ServerTickEvents.END_SERVER_TICK (logging every 200 ticks) in one ModInitializer.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="events"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- MIXINS -->
+    <section class="lesson" id="mixins">
+      <div class="lesson-kicker">Module 6</div>
+      <h3>Mixins, done right</h3>
+      <p>A mixin literally rewrites Minecraft's own compiled bytecode at load time to splice your code into a vanilla method — there's no Fabric API event for it because you're changing behavior Mojang never exposed a hook for. That power is exactly why mixins deserve more care than anything else in this course: a careless one can silently break on the next Minecraft patch, conflict with another mod touching the same method, or introduce a bug nobody can reproduce because it depends on exact bytecode shape.</p>
+
+      <div class="concept">
+        <h4>The rule that saves you the most pain</h4>
+        <p><strong>Reach for a mixin only after confirming Fabric API has no event for what you need.</strong> Check <a href="https://docs.fabricmc.net/develop/events" target="_blank" rel="noopener">docs.fabricmc.net/develop/events</a> first, every time.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — decide, don't code</span>
+        <p>Three scenarios: (a) run code whenever any entity dies, (b) run code the instant a player takes damage, (c) run code at the exact moment vanilla computes <em>how much</em> fall damage to apply, before it's finalized. Which of these is most likely to already have a Fabric API event, and which is the kind of thing that usually needs a mixin?</p>
+        <details class="solution"><summary>Reveal reasoning</summary>
+          <p>(a) and (b) are common enough that Fabric API generally covers them with a dedicated event — always check the docs to confirm for your version. (c) is different in kind: it's not "notify me when X happens," it's "let me change one specific calculation in the middle of vanilla's own method" — that's the shape of problem a generic callback usually can't expose, and where a small, targeted mixin becomes the right tool.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Anatomy of a minimal, justified mixin</h4>
+        <p>When you do need one, keep it as small and targeted as possible — one injection point, one clear reason, commented with exactly what vanilla behavior you're changing and why.</p>
+        <pre>@Mixin(PlayerEntity.class)
+public class PlayerEntityMixin {
+
+    // Fires right before vanilla's own attack() logic runs.
+    // We only READ state here; nothing else touches attack(), so this is safe to keep small.
+    @Inject(method = "attack", at = @At("HEAD"))
+    private void loomAnvil$onAttackStart(Entity target, CallbackInfo ci) {
+        if ((Object) this instanceof PlayerEntity player) {
+            // e.g. check for the Cheapen charm and note intent to modify damage later
+        }
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — read the mixin</span>
+        <p>Looking at the snippet above: does <code>loomAnvil$onAttackStart</code> run before or after vanilla's own <code>attack()</code> code? Could it currently stop vanilla's code from running at all?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>It runs before — <code>@At("HEAD")</code> means the very start of the method. It cannot stop vanilla's code by itself: an injection is non-cancelling by default. To actually prevent <code>attack()</code> from continuing, you'd need <code>@Inject(..., cancellable = true)</code> and to call <code>ci.cancel()</code> inside the method — a separate, deliberate opt-in, not something that happens by accident.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Cancelling vanilla behavior, on purpose</h4>
+        <pre>@Inject(method = "attack", at = @At("HEAD"), cancellable = true)
+private void loomAnvil$onAttackStart(Entity target, CallbackInfo ci) {
+    if (!LoomAnvilConfig.get().enableCheapenAbility) {
+        ci.cancel(); // vanilla's attack() never runs at all
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Modify the snippet above so it only cancels when a (hypothetical) boolean field <code>onCooldown</code> is <code>true</code>, instead of the config flag.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>@Inject(method = "attack", at = @At("HEAD"), cancellable = true)
+private void loomAnvil$onAttackStart(Entity target, CallbackInfo ci) {
+    if (onCooldown) {
+        ci.cancel();
+    }
+}</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Naming your injector methods defensively</h4>
+        <p>Prefixing an injector method's name with your mod id (<code>loomAnvil$onAttackStart</code>) isn't required by Fabric, but it's cheap insurance: it keeps the name unique and self-identifying in crash logs and stack traces, and avoids the rare but nasty case where an unprefixed name accidentally matches a real method already on the target class.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>A crash log shows an exception thrown inside a method called <code>onAttackStart</code>, with a dozen mods installed. Why is that harder to debug than one called <code>loomAnvil$onAttackStart</code>?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>The unprefixed name gives no hint which mod owns it — with a dozen mods installed, several could plausibly have written a method with that generic a name, and you'd have to cross-reference the full stack trace or bisect mods to find the culprit. The prefixed version tells you immediately.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Registering it: mixins.json</h4>
+        <p>Mixins are declared in a <code>&lt;mod_id&gt;.mixins.json</code> file, referenced from <code>fabric.mod.json</code>:</p>
+        <pre>{
+  "required": true,
+  "package": "com.example.loomanvil.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [],
+  "server": ["PlayerEntityMixin"],
+  "injectors": { "defaultRequire": 1 }
+}</pre>
+        <p>Put client-only mixins in <code>"client"</code> and everything-else mixins in <code>"mixins"</code> or <code>"server"</code> — same client/server discipline as module 3, now applying to bytecode instead of just your own classes.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — fill in the blank</span>
+        <p>Write the <code>mixins.json</code> entry that would register a <em>client-only</em> mixin class named <code>ItemTooltipMixin</code>, for a mod with id <code>herb_garden</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>{
+  "required": true,
+  "package": "com.example.herbgarden.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": ["ItemTooltipMixin"],
+  "server": [],
+  "injectors": { "defaultRequire": 1 }
+}</pre>
+        </details>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Good practice</span>
+        <code>@Inject</code> with <code>@At("HEAD")</code> or <code>@At("TAIL")</code> is the least fragile injection point because it doesn't depend on the exact internal structure of the method. <code>@At("INVOKE")</code> targeting a specific inner method call, or <code>@ModifyVariable</code>/<code>@Redirect</code> reaching deep into a method's internals, are powerful but the first thing that breaks when Mojang refactors that method — reserve them for when <code>HEAD</code>/<code>TAIL</code> genuinely can't do the job.
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Pick a real vanilla behavior you'd want to change (anything — fall damage, sprint speed, whatever). Write: (1) whether a Fabric API event already covers it (check the docs), (2) if not, the smallest injection point (<code>HEAD</code>/<code>TAIL</code> vs. something deeper) that could do it, and (3) the actual <code>mixins.json</code> entry you'd need to register that mixin class. This is deliberately about the decision and the wiring, not the mixin body itself.
+        <div class="hint" data-lesson="Mixins done right" data-exercise="Deciding whether a chosen vanilla behavior change already has a Fabric API event, picking the smallest viable mixin injection point if not, and writing the mixins.json entry to register it.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="mixins"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="lesson" id="config">
+      <div class="lesson-kicker">Module 7</div>
+      <h3>Config files, done right</h3>
+      <p>This module doesn't assume you've built a config system before — it builds one from nothing, one piece at a time, and ends at exactly the pattern an experienced modder reaches for. By the end you'll have one class that owns the config, with loading and saving centralized, and nothing else in your mod ever touching the JSON file directly.</p>
+
+      <div class="concept">
+        <h4>Why bother — what problem does a config actually solve?</h4>
+        <p>Any number you hardcode (a cooldown, a discount amount, whether a feature is even on) can only change by editing code and rebuilding. A config file moves that number to something a server owner or player can edit in a text editor, with no recompiling.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — think it through</span>
+        <p>Name one number or on/off switch in a mod that a server owner would plausibly want to change without recompiling.</p>
+        <details class="solution"><summary>Example answers</summary>
+          <p>Whether a feature is enabled at all; a cooldown or duration; a spawn rate or drop chance; a price or discount amount. Anything a server owner might reasonably want to tune per-server without touching Java.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>What Gson actually does: JSON, mapped field by field</h4>
+        <p>JSON is just nested text — braces, keys, and values. <strong>Gson</strong> is a library that reads a JSON file and fills in a Java object's fields by matching key names to field names, automatically, with no code from you describing the mapping.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — read, don't write</span>
+        <p>Given this JSON: <code>{"enabled": true, "cooldown": 150}</code> and this class: <code>boolean enabled; int cooldown;</code> — after <code>Gson.fromJson(...)</code> parses it into an instance, what are the two field values?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p><code>enabled = true</code>, <code>cooldown = 150</code> — Gson matches each JSON key to the Java field with the identical name and converts the value to that field's type. No manual parsing code required.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Step 1: the fields, with real default values</h4>
+        <p>Every field gets a default value right on its declaration — this matters more than it looks, and you'll see exactly why in a few steps.</p>
+        <pre>public class LoomAnvilConfig {
+    public boolean enableCheapenAbility = true;
+    public int cheapenCooldownTicks = 200;
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write a class <code>WelcomeConfig</code> with two fields: a <code>String welcomeMessage</code> defaulting to <code>"Welcome!"</code>, and an <code>int maxPlayers</code> defaulting to <code>20</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public class WelcomeConfig {
+    public String welcomeMessage = "Welcome!";
+    public int maxPlayers = 20;
+}</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Step 2: where the file actually lives</h4>
+        <p><code>FabricLoader.getInstance().getConfigDir()</code> returns the path to Minecraft's shared <code>config/</code> folder — every mod's config lives there, side by side, which is why you resolve your own filename inside it rather than picking an arbitrary path.</p>
+        <pre>private static final Path PATH = FabricLoader.getInstance()
+    .getConfigDir().resolve("loom_anvil.json");</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write the line that would resolve a config path for a mod called <code>herb_garden</code>, saving to <code>herb_garden.json</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>private static final Path PATH = FabricLoader.getInstance()
+    .getConfigDir().resolve("herb_garden.json");</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Step 3: loading, walked through line by line</h4>
+        <p>This is the part that actually needs the <code>try/catch</code> from module 2 — reading a file can fail (missing, corrupted, unreadable), and none of those should crash your mod's startup.</p>
+        <pre>private static LoomAnvilConfig load() {
+    try {
+        if (Files.exists(PATH)) {
+            try (Reader reader = Files.newBufferedReader(PATH)) {
+                LoomAnvilConfig cfg = GSON.fromJson(reader, LoomAnvilConfig.class);
+                if (cfg != null) return cfg;
+            }
+        }
+    } catch (IOException e) {
+        LoomAnvilMod.LOGGER.warn("Couldn't read config, using defaults", e);
+    }
+    LoomAnvilConfig fresh = new LoomAnvilConfig();
+    fresh.save();
+    return fresh;
+}</pre>
+      </div>
+      <div class="step checkpoint">
+        <span class="step-label">Checkpoint</span>
+        <p>Walk through <code>load()</code> line by line for the very first time your mod ever runs, before any config file has been created. What actually happens?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p><code>Files.exists(PATH)</code> is <code>false</code>, so the whole inner block is skipped — no exception, nothing to catch. Execution falls through to <code>new LoomAnvilConfig()</code>, which uses the field defaults from step 1, then immediately calls <code>save()</code> to write that default config out as a real file, and returns it. The very next launch, the file exists and gets read back instead.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Step 4: saving</h4>
+        <pre>public void save() {
+    try (Writer writer = Files.newBufferedWriter(PATH)) {
+        GSON.toJson(this, writer);
+    } catch (IOException e) {
+        LoomAnvilMod.LOGGER.warn("Couldn't save config", e);
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>In one sentence: why does <code>save()</code> also need a <code>try/catch</code>, given that you're the one calling it and presumably wrote correct code?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>Writing to disk can fail for reasons that have nothing to do with your code being correct — a read-only filesystem, a full disk, permissions — and none of those should crash the mod either.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Step 5: one entry point, <code>get()</code></h4>
+        <p>Nobody outside this class should call <code>load()</code> directly — a single static <code>get()</code> loads once, caches the result, and hands it out from then on.</p>
+        <pre>private static LoomAnvilConfig instance;
+
+public static LoomAnvilConfig get() {
+    if (instance == null) instance = load();
+    return instance;
+}
+
+// anywhere else in the mod:
+if (LoomAnvilConfig.get().enableCheapenAbility) { ... }</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>In one sentence, why should every part of the mod call <code>LoomAnvilConfig.get()</code> instead of each writing its own file-reading code?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>So the file's location, its parsing, and its fallback-to-defaults behavior exist in exactly one place — if any of that ever needs to change, there's one method to fix instead of hunting down every place that reads the file.</p>
+        </details>
+      </div>
+
+      <div class="callout good">
+        <span class="callout-label">Why this shape</span>
+        Three things make this "done right" instead of "works for now": (1) a single <code>get()</code> entry point means nobody else needs to know the file even exists, (2) missing or corrupt config never crashes startup — it falls back to sane defaults and rewrites the file, and (3) fields are plain public values with sensible names, so the JSON a player edits by hand looks exactly like the fields in your code.
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        <p style="margin-top:0;">Two parts:</p>
+        <p><strong>1.</strong> Add a third field, <code>maxCharmsPerPlayer</code> (default <code>3</code>), to <code>LoomAnvilConfig</code>. Explain what happens the first time an existing player, who has an <em>old</em> saved config file from before this field existed, loads your mod.</p>
+        <p><strong>2.</strong> Config files are hand-editable — never trust one any more than you'd trust data from a client (module 5). Add a check that clamps <code>cheapenCooldownTicks</code> to at least <code>0</code> if a hand-edited file somehow contains a negative number.</p>
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>public int maxCharmsPerPlayer = 3;</pre>
+          <p>Gson fills in fields missing from the saved JSON using the class's own default field initializers — so an old config file simply gets <code>maxCharmsPerPlayer = 3</code> in memory, and the next <code>save()</code> writes the now-complete file back out. This is exactly why real default values on the fields matter, rather than leaving them uninitialized.</p>
+<pre>private static LoomAnvilConfig load() {
+    LoomAnvilConfig cfg = /* ...existing loading logic... */ new LoomAnvilConfig();
+    if (cfg.cheapenCooldownTicks < 0) {
+        cfg.cheapenCooldownTicks = 0;
+    }
+    return cfg;
+}</pre>
+          <p>This matters even though your own code would never write a negative default — the whole point of a config file is that a human can edit it by hand, and a human can type anything.</p>
+        </details>
+        <div class="hint" data-lesson="Config files done right" data-exercise="Adding a maxCharmsPerPlayer field with a default, explaining Gson's fill-in behavior for an old config file, and adding validation that clamps a hand-edited negative cheapenCooldownTicks value to 0.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="config"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- TESTING -->
+    <section class="lesson" id="testing">
+      <div class="lesson-kicker">Module 8</div>
+      <h3>Testing without a screen</h3>
+      <p>This is the module that actually makes iPad-only development work long-term. Fabric bundles Minecraft's own <strong>GameTest framework</strong> — automated tests that spin up a tiny slice of a real world, run assertions against it, and report pass/fail, with no window, no rendering, and no human clicking around. Server-side game tests run automatically as part of <code>./gradlew build</code> — the same command from module 1.</p>
+
+      <div class="concept">
+        <h4>Anatomy of a GameTest method</h4>
+        <p>A <code>@GameTest</code> method receives a <code>GameTestHelper</code> — call <code>helper.fail(message)</code> if something's wrong, and you must always call <code>helper.succeed()</code> at the end.</p>
+        <pre>public class LoomAnvilGameTest implements FabricGameTest {
+
+    @GameTest(templateName = EMPTY_STRUCTURE)
+    public void exampleGearIsRegistered(GameTestHelper helper) {
+        boolean registered = Registries.ITEM.containsId(
+            Identifier.of(LoomAnvilMod.MOD_ID, "example_gear"));
+        if (!registered) {
+            helper.fail("example_gear was never registered");
+        }
+        helper.succeed();
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — spot the bug</span>
+        <p>Someone writes a test whose assertion logic is completely correct, but they forget to call <code>helper.succeed()</code> anywhere in the method. What happens when the thing being checked is actually fine?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>Without an explicit <code>succeed()</code>, the test framework never receives confirmation that the test finished and passed — it's left looking like it's still running until it eventually times out, which reads as a failure even though the logic you cared about was correct the whole time. Every GameTest must explicitly call <code>succeed()</code>; there's no "no news is good news."</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Registering the test class</h4>
+        <p>Register it as its own entrypoint in <code>fabric.mod.json</code>, separate from your normal mod entrypoints:</p>
+        <pre>"entrypoints": {
+  "main": ["com.example.loomanvil.LoomAnvilMod"],
+  "fabric-gametest": ["com.example.loomanvil.LoomAnvilGameTest"]
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Write the <code>fabric.mod.json</code> snippet registering a GameTest class named <code>CheapenGameTest</code> in package <code>com.example.loomanvil</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>"entrypoints": {
+  "fabric-gametest": ["com.example.loomanvil.CheapenGameTest"]
+}</pre>
+        </details>
+      </div>
+
+      <p>Run <code>./gradlew build</code>: if the test fails, the build fails with your message in the log, right there in the Codespaces terminal — that failure message is your entire feedback loop now, instead of a screen.</p>
+
+      <div class="callout">
+        <span class="callout-label">Good practice</span>
+        Write a GameTest the moment you finish anything you'd otherwise want to "just check in game" — a registration, a config default, a mixin's side effect on a value you can read back. It costs a few lines now and saves you from ever needing a graphical client just to sanity-check that a feature still exists after a refactor.
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Write a GameTest asserting that <code>LoomAnvilConfig.get().cheapenCooldownTicks</code> equals its default of <code>200</code> on a fresh config. Run <code>./gradlew build</code> and confirm you see it pass (or, better: temporarily break the default to <code>199</code> and confirm the build actually fails — a test you've never watched fail is a test you don't fully trust yet).
+        <details class="solution">
+          <summary>Reveal solution</summary>
+<pre>@GameTest(templateName = EMPTY_STRUCTURE)
+public void defaultCooldownIsTwoHundred(GameTestHelper helper) {
+    int cooldown = LoomAnvilConfig.get().cheapenCooldownTicks;
+    if (cooldown != 200) {
+        helper.fail("Expected default cooldown 200, got " + cooldown);
+    }
+    helper.succeed();
+}</pre>
+        </details>
+        <div class="hint" data-lesson="GameTest headless testing" data-exercise="Writing a GameTest that asserts LoomAnvilConfig.get().cheapenCooldownTicks equals 200 on a fresh config, then intentionally breaking it to see the build fail." >
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="testing"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- NETWORKING -->
+    <section class="lesson" id="networking">
+      <div class="lesson-kicker">Module 9</div>
+      <h3>Networking: talking between client and server</h3>
+      <p>The client and server are two separate programs (even in singleplayer, which quietly runs a server in the background) exchanging messages over a connection. Anything not covered by an existing Fabric API event — a custom button press, a custom screen submitting data — needs a <strong>custom payload</strong> to cross that gap.</p>
+
+      <div class="concept">
+        <h4>A payload is a record (module 2, paying off)</h4>
+        <p>Modern Fabric networking represents a packet as a Java <code>record</code> implementing <code>CustomPacketPayload</code> — the immutable-bundle-of-data feature from module 2 turns out to be exactly what a network message is.</p>
+        <pre>public record CheapenRequestPayload(int charmSlot) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Id&lt;CheapenRequestPayload&gt; ID =
+        new CustomPacketPayload.Id&lt;&gt;(Identifier.of(LoomAnvilMod.MOD_ID, "cheapen_request"));
+
+    public static final PacketCodec&lt;RegistryByteBuf, CheapenRequestPayload&gt; CODEC =
+        PacketCodec.tuple(PacketCodecs.INTEGER, CheapenRequestPayload::charmSlot, CheapenRequestPayload::new);
+
+    @Override
+    public CustomPacketPayload.Id&lt;? extends CustomPacketPayload&gt; getId() {
+        return ID;
+    }
+}</pre>
+        <p>The <code>CODEC</code> is what turns your record's fields into bytes and back — exact codec-building helpers shift between versions, so cross-check the current shape against <a href="https://docs.fabricmc.net/develop/networking" target="_blank" rel="noopener">docs.fabricmc.net/develop/networking</a> for 1.21.11.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Without worrying about the codec syntax, write just the record header for a payload called <code>PingPayload</code> carrying one <code>String message</code> field, implementing <code>CustomPacketPayload</code>.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>public record PingPayload(String message) implements CustomPacketPayload { }</pre>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Registering, then sending</h4>
+        <p>Register the payload type once, from your common (non-client, non-server-only) initializer, then send it from whichever side originates the message:</p>
+        <pre>// registration, in onInitialize():
+PayloadTypeRegistry.playC2S().register(CheapenRequestPayload.ID, CheapenRequestPayload.CODEC);
+
+// sending, client -> server:
+ClientPlayNetworking.send(new CheapenRequestPayload(2));
+
+// receiving, on the server:
+ServerPlayNetworking.registerGlobalReceiver(CheapenRequestPayload.ID, (payload, context) -> {
+    // runs on the server; context.player() is who sent it
+});</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — name the direction</span>
+        <p><code>playC2S()</code> registers a client-to-server payload. What would you call the registry method for a server-to-client payload, and which networking class (<code>ClientPlayNetworking</code> or <code>ServerPlayNetworking</code>) would send it?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p><code>PayloadTypeRegistry.playS2C()</code>, and it would be sent from <code>ServerPlayNetworking.send(player, payload)</code> — the server pushing a message down to a specific client.</p>
+        </details>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">The single most important rule in this module</span>
+        <strong>Never trust data a client sends you.</strong> A client is code running on someone else's machine — a modified or hacked client can send a server any payload with any field values it wants, whether or not the real game UI would ever produce them. Every field on an incoming server-bound payload needs the same validation you'd give user input anywhere else: is this slot index actually in range? Does this player actually have this item? Never assume the client-side checks that normally prevent an invalid request ran at all.
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>The receiver above reads <code>payload.charmSlot()</code> and uses it to index directly into the player's inventory with no bounds check. Write the one-line guard that should come first.</p>
+        <details class="solution"><summary>Reveal solution</summary>
+<pre>if (payload.charmSlot() < 0 || payload.charmSlot() >= inventorySize) {
+    return; // ignore an out-of-range request instead of crashing or corrupting state
+}</pre>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Design (record header + registration + a receiver sketch, pseudocode is fine for the receiver body) a client-to-server payload <code>UseCheapenPayload(int charmSlot)</code> that a client sends when using a Cheapen Charm from a given inventory slot. On the server, validate the slot is in range and that the item there is actually your <code>EXAMPLE_GEAR</code>/charm item before doing anything — write the two guard conditions explicitly.
+        <div class="hint" data-lesson="Networking: client-server payloads" data-exercise="Designing a client-to-server payload record, its registration, and a receiver that validates the slot index range and the item type before acting on untrusted client-sent data.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="networking"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- DATA GENERATION -->
+    <section class="lesson" id="datagen">
+      <div class="lesson-kicker">Module 10</div>
+      <h3>Data generation: writing JSON with Java instead of by hand</h3>
+      <p>Recipes, loot tables, and tags are all plain JSON files Minecraft reads at load time. Hand-writing them works, but gets error-prone and repetitive past a handful of items. Fabric's <strong>data generation API</strong> lets you describe the same content in Java, then run a Gradle task that writes the correct JSON files for you.</p>
+
+      <div class="concept">
+        <h4>Why generate instead of hand-write</h4>
+        <p>A hand-written recipe JSON file with a typo'd item id fails silently at load — the recipe just doesn't exist, with no compile-time warning. A datagen provider references your actual registered <code>Item</code> objects from module 4, so a typo becomes a compile error instead of a silent runtime gap.</p>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — think it through</span>
+        <p>In one sentence: why is referencing <code>ModItems.EXAMPLE_GEAR</code> directly in a datagen provider safer than typing the string <code>"loom_anvil:example_gear"</code> into a hand-written JSON file?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>The Java reference is checked by the compiler — rename or remove the item and every provider referencing it fails to compile, forcing you to fix it. A typo'd string in JSON compiles fine and just silently fails to match anything at runtime.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>Registering a data generator entrypoint</h4>
+        <p>Datagen runs as a separate Gradle task (<code>runDatagen</code>), driven by a <code>DataGeneratorEntrypoint</code> registered in <code>fabric.mod.json</code>, kept entirely separate from your normal mod code so it never ships inside the actual mod jar:</p>
+        <pre>public class LoomAnvilDataGenerator implements DataGeneratorEntrypoint {
+    @Override
+    public void onInitializeDataGenerator(FabricDataGenerator.Pack pack) {
+        pack.addProvider(LoomAnvilRecipeProvider::new);
+    }
+}</pre>
+        <pre>"entrypoints": {
+  "fabric-datagen": ["com.example.loomanvil.LoomAnvilDataGenerator"]
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>Which <code>fabric.mod.json</code> entrypoint key registers a data generator — <code>"main"</code>, <code>"client"</code>, or <code>"fabric-datagen"</code>?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p><code>"fabric-datagen"</code> — its own dedicated key, run only by the <code>runDatagen</code> Gradle task, never during normal play.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>A recipe provider, conceptually</h4>
+        <p>A recipe provider's <code>generate()</code> method builds recipe definitions in Java (shaped crafting, smelting, whatever you need) and hands them to a JSON exporter — exact builder method names shift by version, so check <a href="https://docs.fabricmc.net/develop/data-generation/recipes" target="_blank" rel="noopener">docs.fabricmc.net/develop/data-generation</a> for 1.21.11's exact shape rather than a hardcoded snippet here.</p>
+      </div>
+      <div class="step checkpoint">
+        <span class="step-label">Checkpoint</span>
+        <p>You run <code>./gradlew runDatagen</code> after writing a recipe provider, but no new JSON files appear anywhere in your source tree. Name one likely reason, based on what you've learned about entrypoints in this course.</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>Most likely, the <code>fabric-datagen</code> entrypoint was never wired up in <code>fabric.mod.json</code> — the same class of mistake as module 3's mismatched entrypoint, just for a different entrypoint key. Fabric Loader only runs what's actually declared.</p>
+        </details>
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Sketch (class shapes and method signatures, pseudocode inside method bodies is fine) a <code>DataGeneratorEntrypoint</code> that registers one recipe provider, plus the <code>fabric.mod.json</code> entry that wires it up. In one sentence, explain why this class living only in a separate datagen source set (not shipped in the mod jar) is a deliberate design choice, not an accident.
+        <details class="solution">
+          <summary>Reveal reasoning</summary>
+          <p>Datagen code depends on generator-only APIs and only needs to run once, by you, to produce static JSON files — shipping it inside the actual mod jar would bloat every player's download with code that never runs during real gameplay.</p>
+        </details>
+        <div class="hint" data-lesson="Data generation" data-exercise="Sketching a DataGeneratorEntrypoint that registers a recipe provider, wiring it into fabric.mod.json's fabric-datagen entrypoint, and explaining why datagen code stays out of the shipped mod jar.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="datagen"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- SCREENS & HUD -->
+    <section class="lesson" id="screens">
+      <div class="lesson-kicker">Module 11</div>
+      <h3>Screens &amp; HUD: client-only rendering</h3>
+      <p>Everything in this module lives strictly on the client side — it's the payoff of module 3's client/server discipline. A custom inventory-style screen, or drawing something on the player's HUD, is pure presentation with no world-authoritative logic, which is exactly why it's dangerous to let it touch anything server-side directly.</p>
+
+      <div class="concept">
+        <h4>A Screen is a client-only class, registered client-only</h4>
+        <p>A custom <code>Screen</code> subclass belongs under your <code>ClientModInitializer</code>'s package, same as module 3's rule — referencing it from a class that also runs on a dedicated server crashes that server the moment the class loads, even if the screen is never actually opened there.</p>
+        <pre>public class CheapenScreen extends HandledScreen&lt;CheapenScreenHandler&gt; {
+    public CheapenScreen(CheapenScreenHandler handler, PlayerInventory inventory, Text title) {
+        super(handler, inventory, title);
+    }
+}</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it — apply an earlier rule</span>
+        <p>In one sentence, using module 3's reasoning: what would happen if <code>CheapenScreen</code> were accidentally referenced from your main <code>ModInitializer</code> class instead of staying isolated in client-only code?</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>A dedicated server loads and runs every class your <code>ModInitializer</code> touches — the moment it tries to load a class that references rendering-only types that don't exist on a server, it crashes with a <code>ClassNotFoundException</code>, exactly as module 3 described for any client-only class.</p>
+        </details>
+      </div>
+
+      <div class="concept">
+        <h4>HUD rendering: a callback, like module 5</h4>
+        <p>Drawing something every frame (a cooldown indicator, a custom counter) uses a Fabric API rendering callback — same shape as the events from module 5, just firing on render instead of on tick or interaction:</p>
+        <pre>HudRenderCallback.EVENT.register((context, tickDelta) -> {
+    if (LoomAnvilConfig.get().enableCheapenAbility) {
+        context.drawText(client.textRenderer, "Cheapen ready", 10, 10, 0xFFFFFF, true);
+    }
+});</pre>
+      </div>
+      <div class="step">
+        <span class="step-label">Try it</span>
+        <p>This callback reads a config value every single frame (potentially 60+ times a second). Given what module 7 taught about <code>LoomAnvilConfig.get()</code> being cheap to call repeatedly (it just returns a cached instance after the first load), is that a performance concern here? Explain briefly.</p>
+        <details class="solution"><summary>Reveal answer</summary>
+          <p>No — <code>get()</code> returns the already-loaded, cached instance; it doesn't re-read the file from disk each call. Reading a boolean field off an object already in memory, even 60 times a second, is negligible. The expensive part (disk I/O) only happens once, at first load.</p>
+        </details>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Good practice</span>
+        A screen or HUD element should only ever <em>display</em> state, never decide it — if a player could change game outcomes by having a modified client draw or submit something different, that decision belongs on the server, validated the way module 9 described, not trusted from the client's rendering code.
+      </div>
+
+      <div class="exercise">
+        <div class="exercise-title">Combine it</div>
+        Sketch a HUD callback that displays "Cheapen ready" only when <code>LoomAnvilConfig.get().enableCheapenAbility</code> is true, and only when a (hypothetical) client-side cooldown field has reached zero. Then explain in one sentence why the actual cooldown enforcement still has to happen on the server, even though the HUD reads it client-side.
+        <details class="solution">
+          <summary>Reveal reasoning</summary>
+          <p>A modified client can render whatever it wants regardless of a real cooldown, or skip client-side checks entirely — the HUD display is purely cosmetic feedback for an honest client. The server must independently enforce the actual cooldown before acting on any request, exactly as module 9's "never trust the client" rule requires.</p>
+        </details>
+        <div class="hint" data-lesson="Screens and HUD rendering" data-exercise="Sketching a client-only HudRenderCallback that conditionally displays text based on a config flag and a client-side cooldown, and explaining why cooldown enforcement must still happen server-side.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+
+      <label class="mark-done" data-lesson="screens"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- CAPSTONE -->
+    <section class="lesson" id="capstone">
+      <div class="lesson-kicker">Module 12 · Capstone</div>
+      <h3>Put it all together: the Cheapen Charm</h3>
+      <p>One small feature, touching every module so far. No hidden solution this time — by now you have every piece you need, and the point is assembling them yourself.</p>
+      <div class="exercise">
+        <div class="exercise-title">Build this</div>
+        <p style="margin-top:0;">An item called the <strong>Cheapen Charm</strong> that, when a player finishes eating it (or right-clicks with it — your call), reduces their next crafting cost by some amount for a limited time.</p>
+        <ul style="max-width:70ch;">
+          <li>Register the item properly (module 4), in its own <code>ModItems</code> class.</li>
+          <li>Trigger the effect from a Fabric API event, not a mixin, if one exists for the interaction you picked (module 5) — check the docs before reaching for a mixin.</li>
+          <li>Make the discount amount and duration configurable, with sane defaults (module 7).</li>
+          <li>Gate the whole feature behind an <code>enableCheapenAbility</code> config flag.</li>
+          <li>Write at least one GameTest: the item is registered, and the config default is what you expect (module 8).</li>
+          <li>Confirm <code>./gradlew build</code> is green before you call it done.</li>
+        </ul>
+        <p><strong>Optional extensions</strong>, if you want to push further: send the activation as a client→server payload instead of a plain event, validated server-side (module 9); generate the charm's crafting recipe with a datagen provider instead of hand-writing the JSON (module 10); add a HUD indicator showing whether the charm is off cooldown (module 11).</p>
+        <div class="hint" data-lesson="Capstone: Cheapen Charm" data-exercise="Building a full item feature that ties together registration, a Fabric API event trigger, a config-driven discount amount/duration and an enable flag, and at least one GameTest, all passing ./gradlew build.">
+          <summary>💬 Stuck? Ask for a hint</summary>
+          <div class="hint-body"><div class="hint-widget-slot"></div></div>
+        </div>
+      </div>
+      <label class="mark-done" data-lesson="capstone"><input type="checkbox"> Mark this section read</label>
+    </section>
+
+    <!-- WHAT'S NEXT -->
+    <section class="lesson" id="whats-next">
+      <div class="lesson-kicker">Coming later</div>
+      <h3>What's next</h3>
+      <p>This now covers setup through networking, data generation, and client rendering — everything needed to build and test a real, multi-part mod feature on an iPad alone. One thing is deliberately left out for now:</p>
+      <div class="roadmap-grid">
+        <div class="roadmap-card"><h5>Publishing</h5><p>Shipping a build to Modrinth, versioning, and changelogs — not needed until there's something you actually want other people to install.</p></div>
+      </div>
+      <p style="margin-top:22px;">Ask for it whenever it becomes relevant, or for a module on anything not covered here.</p>
+    </section>
+
+    <footer class="page-end">Loom &amp; Anvil — a living curriculum. Built for Minecraft 1.21.11 with Fabric Loader and Yarn mappings; always cross-check exact dependency versions at fabricmc.net/develop.</footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- theme is handled purely by CSS tokens, no JS needed ---------- */
+
+  /* ---------- mobile nav toggle ---------- */
+  var navToggle = document.getElementById('navToggle');
+  var nav = document.getElementById('sideNav');
+  var navToggleIcon = document.getElementById('navToggleIcon');
+  if (navToggle) {
+    navToggle.addEventListener('click', function(){
+      nav.classList.toggle('open');
+      navToggleIcon.textContent = nav.classList.contains('open') ? '▴' : '▾';
+    });
+  }
+
+  /* ---------- progress tracking (localStorage, per-viewer convenience only) ---------- */
+  var STORAGE_KEY = 'loomAnvilProgress';
+  function safeGetProgress(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch(e){ return {}; }
+  }
+  function safeSetProgress(obj){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch(e){ /* ignore */ }
+  }
+  var progress = safeGetProgress();
+  var checkboxes = document.querySelectorAll('.mark-done');
+  var navLinks = document.querySelectorAll('#navList a');
+
+  function renderProgress(){
+    var total = checkboxes.length || 1;
+    var done = 0;
+    checkboxes.forEach(function(label){
+      var id = label.getAttribute('data-lesson');
+      var checked = !!progress[id];
+      var input = label.querySelector('input');
+      input.checked = checked;
+      label.setAttribute('data-checked', checked ? '1' : '0');
+      if (checked) done++;
+    });
+    navLinks.forEach(function(a){
+      var id = a.getAttribute('data-target');
+      a.setAttribute('data-done', progress[id] ? '1' : '0');
+    });
+    var pct = Math.round((done/total)*100);
+    var fill = document.getElementById('progressFill');
+    var pctLabel = document.getElementById('progressPct');
+    if (fill) fill.style.width = pct + '%';
+    if (pctLabel) pctLabel.textContent = pct + '%';
+  }
+
+  checkboxes.forEach(function(label){
+    label.addEventListener('click', function(e){
+      e.preventDefault();
+      var id = label.getAttribute('data-lesson');
+      progress[id] = !progress[id];
+      safeSetProgress(progress);
+      renderProgress();
+    });
+  });
+  renderProgress();
+
+  /* ---------- active section highlighting ---------- */
+  var sections = document.querySelectorAll('section.lesson');
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var link = document.querySelector('#navList a[data-target="' + entry.target.id + '"]');
+        if (!link) return;
+        if (entry.isIntersecting) {
+          navLinks.forEach(function(a){ a.classList.remove('active'); });
+          link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s){ obs.observe(s); });
+  }
+
+  /* ---------- AI hint widgets ---------- */
+  var hintsGloballyDisabled = false;
+  var globalNotice = document.getElementById('globalHintNotice');
+
+  function disableAllHints(message){
+    hintsGloballyDisabled = true;
+    document.querySelectorAll('.hint').forEach(function(el){ el.setAttribute('data-unavailable','1'); });
+    if (globalNotice) globalNotice.textContent = message || '';
+  }
+
+  function buildPrompt(lesson, exercise, level, stuckText){
+    var levelRule;
+    if (level <= 1) {
+      levelRule = "Give the SMALLEST possible nudge: one guiding question, or name the ONE concept they seem to be missing. 2-3 sentences at most. Absolutely no code.";
+    } else if (level === 2) {
+      levelRule = "Give a bigger hint: you may name the specific Java feature, Fabric API class, or method to look at, and describe the approach in plain words. Still no working code for their exercise.";
+    } else {
+      levelRule = "Walk through the approach step by step in plain English (a short numbered list is fine). You may include a tiny illustrative code fragment of a DIFFERENT toy example to show a pattern, but never write the actual solution to their exercise.";
+    }
+    return "You are a patient coding mentor helping a student learn Minecraft Fabric mod development (Java 21, Minecraft 1.21.11). "
+      + "They deliberately want to reduce how much they rely on AI to write code for them, so your job is to unblock their thinking, never to solve it for them.\n\n"
+      + "Lesson: " + lesson + "\n"
+      + "Exercise: " + exercise + "\n\n"
+      + "What they say they're stuck on:\n\"\"\"\n" + (stuckText || "(they didn't describe it further — infer from the exercise what a beginner usually trips on)") + "\n\"\"\"\n\n"
+      + "Hint level: " + level + " of 3.\nRules:\n- " + levelRule
+      + "\n- Never write the complete working solution to this exact exercise, even if asked directly.\n"
+      + "- Be encouraging but brief — no restating the whole exercise back to them, no fluff.\n"
+      + "- If their message reveals a specific concrete bug, you may point at exactly what's wrong without fixing it for them.";
+  }
+
+  function mountHintWidget(container){
+    var lesson = container.getAttribute('data-lesson') || '';
+    var exercise = container.getAttribute('data-exercise') || '';
+    var slot = container.querySelector('.hint-widget-slot');
+    if (!slot) return;
+
+    var level = 0;
+    var controller = null;
+
+    var wrap = document.createElement('div');
+    wrap.innerHTML =
+      '<textarea placeholder="What are you stuck on? Paste the error or describe what is not working..."></textarea>' +
+      '<div class="hint-row">' +
+        '<button class="btn ask-btn" type="button">Get a hint</button>' +
+        '<button class="btn ghost stop-btn" type="button" style="display:none;">Stop</button>' +
+        '<span class="hint-level"></span>' +
+      '</div>' +
+      '<div class="hint-answer" style="display:none;"></div>';
+    slot.appendChild(wrap);
+
+    var textarea = wrap.querySelector('textarea');
+    var askBtn = wrap.querySelector('.ask-btn');
+    var stopBtn = wrap.querySelector('.stop-btn');
+    var levelLabel = wrap.querySelector('.hint-level');
+    var answerBox = wrap.querySelector('.hint-answer');
+
+    function setLevelLabel(){
+      var names = ['nudge','bigger hint','walkthrough'];
+      var shown = Math.min(level, 2);
+      levelLabel.textContent = level > 0 ? ('next: ' + names[Math.min(level, names.length-1)]) : '';
+    }
+    setLevelLabel();
+
+    askBtn.addEventListener('click', async function(){
+      if (hintsGloballyDisabled) return;
+      var sample = await window.claude.use('sample').catch(function(){ return null; });
+      if (!sample) { disableAllHints("AI hints aren't available in this view right now."); return; }
+
+      level = level + 1;
+      var prompt = buildPrompt(lesson, exercise, level, textarea.value.trim());
+
+      askBtn.disabled = true;
+      stopBtn.style.display = 'inline-block';
+      answerBox.style.display = 'block';
+      answerBox.textContent = 'Thinking...';
+      controller = new AbortController();
+
+      try {
+        var result = await sample(prompt, {
+          signal: controller.signal,
+          modelTier: 'default',
+          onText: function(update){ answerBox.textContent = update.text; }
+        });
+        if (result.truncated) {
+          answerBox.textContent += '\n\n[cut short — ask a narrower question for more]';
+        }
+        setLevelLabel();
+      } catch (e) {
+        if (e && e.code === 'cancelled') {
+          answerBox.textContent = e.text || '(stopped)';
+        } else if (e && (e.code === 'not_granted' || e.code === 'sampling_disabled' || e.code === 'not_declared' || e.code === 'capability_disabled' || e.code === 'capability_removed')) {
+          disableAllHints("AI hints aren't available for this view.");
+        } else if (e && e.code === 'rate_limited') {
+          answerBox.textContent = "You've hit a usage limit for now — try again in a little while.";
+        } else if (e && e.code === 'refused') {
+          answerBox.textContent = "That one got declined — try rephrasing what you're stuck on.";
+        } else if (e && e.code === 'empty_completion') {
+          answerBox.textContent = "No answer came back — try describing your problem a bit more.";
+        } else {
+          answerBox.textContent = (e && e.text) ? e.text + '\n\n[interrupted — try again]' : "Something went wrong — try again in a moment.";
+        }
+      } finally {
+        askBtn.disabled = false;
+        askBtn.textContent = level > 0 ? 'Ask again' : 'Get a hint';
+        stopBtn.style.display = 'none';
+        controller = null;
+      }
+    });
+
+    stopBtn.addEventListener('click', function(){
+      if (controller) controller.abort();
+    });
+  }
+
+  async function initHints(){
+    var sample = await window.claude.use('sample').catch(function(){ return null; });
+    if (!sample) { disableAllHints("This view can't use the AI hint feature — the rest of the course works fully without it."); return; }
+    document.querySelectorAll('.hint[data-lesson]').forEach(mountHintWidget);
+  }
+
+  if (window.claude && typeof window.claude.use === 'function') {
+    initHints();
+  } else {
+    disableAllHints('');
+  }
+})();
+</script>
